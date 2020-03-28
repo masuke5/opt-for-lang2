@@ -1,5 +1,6 @@
 use std::fmt;
-#[derive(Clone)]
+
+#[derive(Clone, PartialEq, Eq)]
 pub enum Expr {
     Int(i64),
     Add(Box<Expr>, Box<Expr>),
@@ -11,7 +12,7 @@ impl Expr {
     pub fn is_const(&self) -> bool {
         match self {
             Self::Int(_) => true,
-            // Self::Add(_, _) | Self::Mul(_, _) => true,
+            Self::Add(lhs, rhs) | Self::Mul(lhs, rhs) => lhs.is_const() && rhs.is_const(),
             _ => false,
         }
     }
@@ -19,6 +20,8 @@ impl Expr {
     pub fn to_value(&self) -> i64 {
         match self {
             Self::Int(n) => *n,
+            Self::Add(lhs, rhs) => lhs.to_value() + rhs.to_value(),
+            Self::Mul(lhs, rhs) => lhs.to_value() * rhs.to_value(),
             _ => panic!("`{}` is not constant", self),
         }
     }
@@ -35,7 +38,7 @@ impl fmt::Display for Expr {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Stmt {
     Store(isize, Expr),
     Expr(Expr),

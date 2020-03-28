@@ -56,52 +56,48 @@ impl Optimizer {
         }
     }
 
-    fn optimize_expr(&self, i: usize, expr: Expr) -> Expr {
+    fn optimize_expr(&self, i: usize, expr: &mut Expr) {
         match expr {
             Expr::LoadCopy(loc) => {
                 let defs = match self.defs.get(&loc) {
                     Some(defs) => defs,
-                    None => return Expr::LoadCopy(loc),
+                    None => return,
                 };
                 let in_defs = &self.in_defs[i]; // in[i]
                 let reached_defs = defs & in_defs;
 
+                // 到達する定義が一つだけの場合
                 if reached_defs.len() == 1 {
                     let only_one_def = reached_defs.into_iter().next().unwrap();
-                    let expr = self.def_exprs[&only_one_def].clone();
+                    let new_expr = self.def_exprs[&only_one_def].clone();
 
-                    if expr.is_const() {
-                        Expr::Int(expr.to_value())
-                    } else {
-                        Expr::LoadCopy(loc)
+                    // 定数伝播
+                    if new_expr.is_const() {
+                        *expr = Expr::Int(new_expr.to_value())
                     }
-                } else {
-                    Expr::LoadCopy(loc)
                 }
             }
-            Expr::Add(lhs, rhs) => Expr::Add(
-                box self.optimize_expr(i, *lhs),
-                box self.optimize_expr(i, *rhs),
-            ),
-            Expr::Mul(lhs, rhs) => Expr::Mul(
-                box self.optimize_expr(i, *lhs),
-                box self.optimize_expr(i, *rhs),
-            ),
-            expr => expr,
-        }
-    }
+            Expr::Add(lhs, rhs) | Expr::Mul(lhs, rhs) => {
+                self.optimize_expr(i, lhs);
+                self.optimize_expr(i, rhs);
 
-    fn optimize_stmt(&self, i: usize, stmt: Stmt) -> Option<Stmt> {
-        match stmt {
-            Stmt::Store(loc, expr) => {
-                let expr = self.optimize_expr(i, expr);
-                Some(Stmt::Store(loc, expr))
+                if expr.is_const() {
+                    *expr = Expr::Int(expr.to_value());
+                }
             }
-            Stmt::Expr(expr) => Some(Stmt::Expr(self.optimize_expr(i, expr))),
+            _ => {}
         }
     }
 
-    fn optimize(mut self) -> Vec<Stmt> {
+    fn optimize_stmt(&self, i: usize, stmt: &mut Stmt) {
+        match stmt {
+            Stmt::Store(_, expr) => self.optimize_expr(i, expr),
+            Stmt::Expr(expr) => self.optimize_expr(i, expr),
+        }
+    }
+
+    fn calc_reaching_definition(&mut self) {
+        // 変数ごとの定義の集合を計算
         for (i, ir) in self.code.iter().enumerate() {
             match ir {
                 Stmt::Store(loc, expr) => {
@@ -135,6 +131,10 @@ impl Optimizer {
                 break;
             }
         }
+    }
+
+    fn optimize(mut self) -> Vec<Stmt> {
+        self.calc_reaching_definition();
 
         // 計算した到達定義を表示する
         for i in 0..self.code.len() {
@@ -148,15 +148,18 @@ impl Optimizer {
         }
 
         // 到達定義情報を元に最適化する
-        // let mut stmts_should_remove = Vec::new();
-        let mut new_code = Vec::with_capacity(self.code.len());
-        for (i, stmt) in self.code.clone().into_iter().enumerate() {
-            if let Some(stmt) = self.optimize_stmt(i, stmt) {
-                new_code.push(stmt);
-            }
+        let mut new_code = self.code.clone();
+        for (i, stmt) in new_code.iter_mut().enumerate() {
+            self.optimize_stmt(i, stmt)
         }
 
         new_code
+    }
+}
+
+fn print_code(code: &[Stmt]) {
+    for (i, stmt) in code.iter().enumerate() {
+        println!("{:<3} {}", i, stmt);
     }
 }
 
@@ -167,10 +170,10 @@ fn main() {
     let code = vec![
         // v0 = 10
         Store(0, Int(10)),
-        // v0 = 40
-        Store(0, Int(40)),
-        // v1 = a0
-        Store(1, LoadCopy(-1)),
+        // v0 = 40 + 5
+        Store(0, Add(box Int(40), box Int(5))),
+        // v1 = 90
+        Store(1, Int(90)),
         // v2 = v0
         Store(2, LoadCopy(0)),
         // v2 + 20 * v1
@@ -182,8 +185,5 @@ fn main() {
 
     println!("----------------------------------------");
 
-    // 最適化したコードを表示する
-    for (i, stmt) in optimized_code.into_iter().enumerate() {
-        println!("{:<3} {}", i, stmt);
-    }
+    print_code(&optimized_code);
 }

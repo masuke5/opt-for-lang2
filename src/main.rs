@@ -1,6 +1,6 @@
 #![feature(box_syntax)]
 
-use opt_for_lang2::{ir, ir_to_insts, print_code, Optimizer, VM};
+use opt_for_lang2::{ir, ir_to_insts, print_code, print_insts, Optimizer, VM};
 
 fn main() {
     use ir::{Expr::*, Stmt::*};
@@ -36,6 +36,10 @@ fn main() {
     println!("------------------------------------");
 
     let insts = ir_to_insts(&code);
+    print_insts(&insts);
+
+    println!("------------------------------------");
+
     let vm = VM::new();
     vm.run(&insts);
 }

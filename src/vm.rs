@@ -75,6 +75,27 @@ pub fn ir_to_insts(stmts: &[Stmt]) -> Vec<Inst> {
     insts
 }
 
+pub fn print_insts(insts: &[Inst]) {
+    let width = format!("{}", insts.len()).len();
+
+    for (i, inst) in insts.iter().enumerate() {
+        print!("{:<width$}  ", i, width = width);
+        match inst {
+            Inst::Int(n) => println!("INT {}", n),
+            Inst::Add => println!("ADD"),
+            Inst::Mul => println!("MUL"),
+            Inst::Store(loc) => println!("STORE {}", loc),
+            Inst::LoadCopy(loc) => println!("LOAD_COPY {}", loc),
+            Inst::Jump(loc) => println!("JUMP {}", loc),
+            Inst::JumpIfZero(loc) => println!("JUMP_IF_ZERO {}", loc),
+            Inst::Call(id) => match id {
+                0 => println!("PRINT"),
+                _ => println!("CALL {} (unknown)", id),
+            },
+        }
+    }
+}
+
 const STACK_SIZE: usize = 500;
 const MAX_VARIABLES: usize = 50;
 

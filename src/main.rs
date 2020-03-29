@@ -18,6 +18,12 @@ fn main() {
         Print(LoadCopy(1)),
     ];
 
+    let bbs = ir::stmts_to_bbs(code.clone());
+    for bb in bbs {
+        println!("========");
+        print_code(&bb.stmts);
+    }
+
     /*
     let code = vec![
         Store(0, Int(10)),

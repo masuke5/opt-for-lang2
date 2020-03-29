@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 use std::ops::{Index, IndexMut};
 
 #[derive(Default, Clone, PartialEq)]
@@ -23,6 +24,10 @@ impl<T> DirectedGraph<T> {
             succ: Vec::with_capacity(capacity),
             pred: Vec::with_capacity(capacity),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.nodes.len()
     }
 
     pub fn add(&mut self, value: T) -> usize {
@@ -98,6 +103,31 @@ impl<T> Index<usize> for DirectedGraph<T> {
 impl<T> IndexMut<usize> for DirectedGraph<T> {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         &mut self.nodes[i]
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for DirectedGraph<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[derive(Debug)]
+        struct Node<'a, T> {
+            value: &'a T,
+            pred: Vec<usize>,
+            succ: Vec<usize>,
+        }
+
+        let mut ds = f.debug_struct("DirectedGraph");
+
+        for i in 0..self.len() {
+            let node = Node {
+                value: &self[i],
+                succ: self.succ_indexes(i).collect(),
+                pred: self.pred_indexes(i).collect(),
+            };
+
+            ds.field(&format!("{}", i), &node);
+        }
+
+        ds.finish()
     }
 }
 

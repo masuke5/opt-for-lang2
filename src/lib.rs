@@ -44,7 +44,7 @@ pub struct Optimizer {
     out_defs: Vec<HashSet<usize>>,
     // 変数ごとの定義の集合
     defs: HashMap<isize, HashSet<usize>>,
-    def_exprs: HashMap<usize, Expr>,
+    // コードの有向グラフ
     code: DirectedGraph<Stmt>,
 }
 
@@ -54,7 +54,6 @@ impl Optimizer {
             in_defs: vec![HashSet::new(); code.len()],
             out_defs: vec![HashSet::new(); code.len()],
             defs: HashMap::new(),
-            def_exprs: HashMap::new(),
             code: code_to_graph(code),
         }
     }
@@ -74,7 +73,10 @@ impl Optimizer {
                 if reached_defs.len() == 1 {
                     // 到達した唯一の定義とその式
                     let only_def = reached_defs.into_iter().next().unwrap();
-                    let new_expr = self.def_exprs[&only_def].clone();
+                    let new_expr = match &self.code[only_def] {
+                        Stmt::Store(_, expr) => expr,
+                        stmt => panic!("the statement `{}` is not definition", stmt),
+                    };
 
                     // 複写伝播
                     if let Expr::LoadCopy(loc) = new_expr {
@@ -82,7 +84,7 @@ impl Optimizer {
                         let reached_defs = &self.defs[&loc] & &self.in_defs[only_def];
                         let defs = &(in_defs & &self.defs[&loc]) - &reached_defs;
                         if defs.is_empty() {
-                            *expr = Expr::LoadCopy(loc);
+                            *expr = Expr::LoadCopy(*loc);
                             return;
                         }
                     }
@@ -119,9 +121,8 @@ impl Optimizer {
         // 変数ごとの定義の集合を計算
         for (i, ir) in self.code.iter().enumerate() {
             match ir {
-                Stmt::Store(loc, expr) => {
+                Stmt::Store(loc, _) => {
                     self.defs.entry(*loc).or_insert(HashSet::new()).insert(i);
-                    self.def_exprs.insert(i, expr.clone());
                 }
                 _ => {}
             }

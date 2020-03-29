@@ -115,6 +115,7 @@ impl Optimizer {
             Stmt::Store(_, expr) => self.optimize_expr(i, expr),
             Stmt::Expr(expr) => self.optimize_expr(i, expr),
             Stmt::JumpIfZero(expr, _) => self.optimize_expr(i, expr),
+            Stmt::Print(expr) => self.optimize_expr(i, expr),
             _ => {}
         }
     }

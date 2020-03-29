@@ -5,7 +5,6 @@ use opt_for_lang2::{ir, ir_to_insts, print_code, Optimizer, VM};
 fn main() {
     use ir::{Expr::*, Stmt::*};
 
-    /*
     let code = vec![
         Store(0, Int(30)),
         Jump(0),
@@ -14,10 +13,10 @@ fn main() {
         Store(0, Int(5)),
         Label(0),
         Store(1, Int(50)),
-        Jump(1),
+        Print(LoadCopy(1)),
     ];
-    */
 
+    /*
     let code = vec![
         Store(0, Int(10)),
         Store(0, Int(20)),
@@ -25,17 +24,18 @@ fn main() {
         // Store(0, Int(20)),
         Store(2, Add(box LoadCopy(1), box Int(5))),
     ];
+    */
 
     let optimizer = Optimizer::new(code);
-    let optimized_code = optimizer.optimize();
+    let code = optimizer.optimize();
 
     println!("----------------------------------------");
 
-    print_code(&optimized_code);
+    print_code(&code);
 
     println!("------------------------------------");
 
-    let insts = ir_to_insts(&optimized_code);
+    let insts = ir_to_insts(&code);
     let vm = VM::new();
     vm.run(&insts);
 }

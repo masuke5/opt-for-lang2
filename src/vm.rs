@@ -48,6 +48,10 @@ fn stmt_to_insts(insts: &mut Vec<Inst>, labels: &mut HashMap<usize, usize>, stmt
             expr_to_insts(insts, expr);
             insts.push(Inst::JumpIfZero(*name));
         }
+        Stmt::Print(expr) => {
+            expr_to_insts(insts, expr);
+            insts.push(Inst::Call(0));
+        }
     }
 }
 
@@ -125,7 +129,11 @@ impl VM {
                     continue;
                 }
                 Inst::Call(id) => match *id {
-                    0 => {}
+                    0 => {
+                        let value = self.stack[sp];
+                        sp -= 1;
+                        println!("{}", value);
+                    }
                     _ => panic!("Unknown function id: {}", *id),
                 },
                 // #[non_exhaustive]を指定しているのに警告が出る

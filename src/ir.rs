@@ -51,6 +51,7 @@ pub enum Stmt {
     Label(usize),
     Jump(usize),
     JumpIfZero(Expr, usize),
+    Print(Expr),
 }
 
 impl fmt::Display for Stmt {
@@ -61,6 +62,7 @@ impl fmt::Display for Stmt {
             Stmt::Label(name) => write!(f, "L{}:", name),
             Stmt::Jump(name) => write!(f, "jump L{}", name),
             Stmt::JumpIfZero(expr, name) => write!(f, "jump_if_zero {} -> L{}", expr, name),
+            Stmt::Print(expr) => write!(f, "print ({})", expr),
         }
     }
 }

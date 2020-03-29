@@ -1,7 +1,9 @@
 mod graph;
 pub mod ir;
+mod vm;
 
 pub use graph::*;
+pub use vm::*;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -80,7 +82,7 @@ impl Optimizer {
 
                     // 複写伝播
                     if let Expr::LoadCopy(loc) = new_expr {
-                        // only_one_defからiに至るパスにlocの定義がなければ、locの複写に置き換える
+                        // only_defからiに至るパスにlocの定義がなければ、locの複写に置き換える
                         let reached_defs = &self.defs[&loc] & &self.in_defs[only_def];
                         let defs = &(in_defs & &self.defs[&loc]) - &reached_defs;
                         if defs.is_empty() {

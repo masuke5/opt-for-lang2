@@ -38,17 +38,35 @@ impl fmt::Display for Expr {
     }
 }
 
+impl fmt::Debug for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub enum Stmt {
     Store(isize, Expr),
     Expr(Expr),
+    Label(usize),
+    Jump(usize),
+    JumpIfZero(Expr, usize),
 }
 
 impl fmt::Display for Stmt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Stmt::Store(loc, expr) => write!(f, "v{} = {}", loc, expr),
+            Stmt::Store(loc, expr) => write!(f, "v{} <- {}", loc, expr),
             Stmt::Expr(expr) => write!(f, "{};", expr),
+            Stmt::Label(name) => write!(f, "L{}:", name),
+            Stmt::Jump(name) => write!(f, "jump L{}", name),
+            Stmt::JumpIfZero(expr, name) => write!(f, "jump_if_zero {} -> L{}", expr, name),
         }
+    }
+}
+
+impl fmt::Debug for Stmt {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
     }
 }

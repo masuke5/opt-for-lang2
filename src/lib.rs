@@ -9,6 +9,8 @@ use std::fmt;
 use ir::{Expr, Stmt};
 use maplit::hashset as hs;
 
+use graph::DirectedGraph;
+
 struct FormatIter<'a, I, V>(I, &'a str)
 where
     I: IntoIterator<Item = V> + Clone,
@@ -43,7 +45,7 @@ pub struct Optimizer {
     // 変数ごとの定義の集合
     defs: HashMap<isize, HashSet<usize>>,
     def_exprs: HashMap<usize, Expr>,
-    code: Vec<Stmt>,
+    code: DirectedGraph<Stmt>,
 }
 
 impl Optimizer {
@@ -53,7 +55,7 @@ impl Optimizer {
             out_defs: vec![HashSet::new(); code.len()],
             defs: HashMap::new(),
             def_exprs: HashMap::new(),
-            code,
+            code: code_to_graph(code),
         }
     }
 
@@ -94,6 +96,8 @@ impl Optimizer {
         match stmt {
             Stmt::Store(_, expr) => self.optimize_expr(i, expr),
             Stmt::Expr(expr) => self.optimize_expr(i, expr),
+            Stmt::JumpIfZero(expr, _) => self.optimize_expr(i, expr),
+            _ => {}
         }
     }
 
@@ -114,10 +118,11 @@ impl Optimizer {
             let prev_out = self.out_defs.clone();
 
             for i in 0..self.code.len() {
-                if let Some(prev) = i.checked_sub(1) {
-                    // in[i] = out[i - 1]
-                    self.in_defs[i] = self.out_defs[prev].clone();
-                }
+                self.in_defs[i] = self
+                    .code
+                    .pred_indexes(i)
+                    .map(|index| &self.out_defs[index])
+                    .fold(HashSet::new(), |acc, defs| &acc | defs);
 
                 let (gen, kill) = match self.code[i] {
                     Stmt::Store(loc, _) => (hs!(i), &self.defs[&loc] - &hs!(i)),
@@ -135,6 +140,9 @@ impl Optimizer {
     }
 
     pub fn optimize(mut self) -> Vec<Stmt> {
+        println!("{:#?}", self.code);
+        println!("-------------------");
+
         self.calc_reaching_definition();
 
         // 計算した到達定義を表示する
@@ -154,8 +162,42 @@ impl Optimizer {
             self.optimize_stmt(i, stmt)
         }
 
-        new_code
+        new_code.into_iter().collect()
     }
+}
+
+// コードを有向グラフに変換する
+pub fn code_to_graph(code: Vec<Stmt>) -> DirectedGraph<Stmt> {
+    let mut graph = DirectedGraph::new();
+    let mut labels = HashMap::new();
+
+    for stmt in code {
+        if let Stmt::Label(name) = stmt {
+            let index = graph.add(stmt);
+            labels.insert(name, index);
+        } else {
+            graph.add(stmt);
+        }
+    }
+
+    for index in 0..graph.len() {
+        match &graph[index] {
+            Stmt::Jump(name) | Stmt::JumpIfZero(_, name) => {
+                let dest_index = labels[name];
+                graph.add_edge(index, dest_index);
+            }
+            _ => {}
+        }
+
+        if let Some(prev) = index.checked_sub(1) {
+            if let Stmt::Jump(_) = &graph[prev] {
+            } else {
+                graph.add_edge(prev, index);
+            }
+        }
+    }
+
+    graph
 }
 
 pub fn print_code(code: &[Stmt]) {

@@ -42,6 +42,10 @@ impl<T> DirectedGraph<T> {
         self.nodes.iter()
     }
 
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.nodes.iter_mut()
+    }
+
     pub fn into_iter(self) -> impl Iterator<Item = T> {
         self.nodes.into_iter()
     }

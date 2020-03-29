@@ -66,15 +66,29 @@ impl Optimizer {
                     Some(defs) => defs,
                     None => return,
                 };
-                let in_defs = &self.in_defs[i]; // in[i]
+                let in_defs = &self.in_defs[i];
+                // iに到達したlocの定義
                 let reached_defs = defs & in_defs;
 
                 // 到達する定義が一つだけの場合
                 if reached_defs.len() == 1 {
-                    let only_one_def = reached_defs.into_iter().next().unwrap();
-                    let new_expr = self.def_exprs[&only_one_def].clone();
+                    // 到達した唯一の定義とその式
+                    let only_def = reached_defs.into_iter().next().unwrap();
+                    let new_expr = self.def_exprs[&only_def].clone();
+
+                    // 複写伝播
+                    if let Expr::LoadCopy(loc) = new_expr {
+                        // only_one_defからiに至るパスにlocの定義がなければ、locの複写に置き換える
+                        let reached_defs = &self.defs[&loc] & &self.in_defs[only_def];
+                        let defs = &(in_defs & &self.defs[&loc]) - &reached_defs;
+                        if defs.is_empty() {
+                            *expr = Expr::LoadCopy(loc);
+                            return;
+                        }
+                    }
 
                     // 定数伝播
+                    // 到達した唯一の定義の式が定数であれば、その式で置き換える
                     if new_expr.is_const() {
                         *expr = Expr::Int(new_expr.to_value())
                     }
@@ -140,7 +154,6 @@ impl Optimizer {
     }
 
     pub fn optimize(mut self) -> Vec<Stmt> {
-        println!("{:#?}", self.code);
         println!("-------------------");
 
         self.calc_reaching_definition();

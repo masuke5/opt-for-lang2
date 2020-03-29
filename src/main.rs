@@ -5,6 +5,7 @@ use opt_for_lang2::{ir, print_code, Optimizer};
 fn main() {
     use ir::{Expr::*, Stmt::*};
 
+    /*
     let code = vec![
         Store(0, Int(30)),
         Jump(0),
@@ -14,6 +15,15 @@ fn main() {
         Label(0),
         Store(1, Int(50)),
         Jump(1),
+    ];
+    */
+
+    let code = vec![
+        Store(0, Int(10)),
+        Store(0, Int(20)),
+        Store(1, LoadCopy(0)),
+        // Store(0, Int(20)),
+        Store(2, Add(box LoadCopy(1), box Int(5))),
     ];
 
     let optimizer = Optimizer::new(code);

@@ -38,15 +38,15 @@ fn stmt_to_insts(insts: &mut Vec<Inst>, labels: &mut HashMap<usize, usize>, stmt
             expr_to_insts(insts, expr);
             insts.push(Inst::Store(*loc));
         }
-        Stmt::Label(name) => {
-            labels.insert(*name, insts.len());
+        Stmt::Label(label) => {
+            labels.insert(label.as_usize(), insts.len());
         }
-        Stmt::Jump(name) => {
-            insts.push(Inst::Jump(*name));
+        Stmt::Jump(label) => {
+            insts.push(Inst::Jump(label.as_usize()));
         }
-        Stmt::JumpIfZero(expr, name) => {
+        Stmt::JumpIfZero(expr, label) => {
             expr_to_insts(insts, expr);
-            insts.push(Inst::JumpIfZero(*name));
+            insts.push(Inst::JumpIfZero(label.as_usize()));
         }
         Stmt::Print(expr) => {
             expr_to_insts(insts, expr);

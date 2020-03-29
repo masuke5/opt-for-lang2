@@ -5,13 +5,15 @@ use opt_for_lang2::{ir, ir_to_insts, print_code, print_insts, Optimizer, VM};
 fn main() {
     use ir::{Expr::*, Stmt::*};
 
+    let l0 = ir::Label::new();
+    let l1 = ir::Label::new();
     let code = vec![
         Store(0, Int(30)),
-        Jump(0),
-        Label(1),
+        Jump(l0),
+        Label(l1),
         Expr(Add(box LoadCopy(0), box LoadCopy(1))),
         Store(0, Int(5)),
-        Label(0),
+        Label(l0),
         Store(1, Int(50)),
         Print(LoadCopy(1)),
     ];

@@ -1,4 +1,20 @@
 use std::fmt;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+pub static NEXT_LABEL: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Label(usize);
+
+impl Label {
+    pub fn new() -> Self {
+        Self(NEXT_LABEL.fetch_add(1, Ordering::AcqRel))
+    }
+
+    pub fn as_usize(&self) -> usize {
+        self.0
+    }
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expr {
@@ -48,9 +64,9 @@ impl fmt::Debug for Expr {
 pub enum Stmt {
     Store(isize, Expr),
     Expr(Expr),
-    Label(usize),
-    Jump(usize),
-    JumpIfZero(Expr, usize),
+    Label(Label),
+    Jump(Label),
+    JumpIfZero(Expr, Label),
     Print(Expr),
 }
 
@@ -59,9 +75,11 @@ impl fmt::Display for Stmt {
         match self {
             Stmt::Store(loc, expr) => write!(f, "v{} <- {}", loc, expr),
             Stmt::Expr(expr) => write!(f, "{};", expr),
-            Stmt::Label(name) => write!(f, "L{}:", name),
-            Stmt::Jump(name) => write!(f, "jump L{}", name),
-            Stmt::JumpIfZero(expr, name) => write!(f, "jump_if_zero {} -> L{}", expr, name),
+            Stmt::Label(label) => write!(f, "L{}:", label.as_usize()),
+            Stmt::Jump(label) => write!(f, "jump L{}", label.as_usize()),
+            Stmt::JumpIfZero(expr, label) => {
+                write!(f, "jump_if_zero {} -> L{}", expr, label.as_usize())
+            }
             Stmt::Print(expr) => write!(f, "print ({})", expr),
         }
     }
@@ -71,4 +89,13 @@ impl fmt::Debug for Stmt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self)
     }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct BasicBlock {
+    pub stmts: Vec<Stmt>,
+}
+
+pub fn stmts_to_bbs(stmts: Vec<Stmt>) -> Vec<BasicBlock> {
+    vec![]
 }
